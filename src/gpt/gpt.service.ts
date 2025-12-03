@@ -1,11 +1,14 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import GigaChat from 'gigachat';
 import { Agent } from 'node:https';
+import { prompt } from './assets/prompt';
+import { ChatMessage } from './interfaces/interfaces';
 
 @Injectable()
 export class GptService implements OnModuleInit {
   private readonly logger = new Logger(GptService.name);
   private client: GigaChat;
+  private chatHistory: ChatMessage[] = [];
 
   onModuleInit() {
     try {
@@ -28,45 +31,32 @@ export class GptService implements OnModuleInit {
 
   async sendMessage(userMessage: string) {
     try {
+      const messagesToSend: ChatMessage[] = [];
+
+      if (this.chatHistory.length === 0)
+        this.chatHistory.push({
+          role: 'system',
+          content: prompt,
+        });
+
+      messagesToSend.push(...this.chatHistory);
+
+      this.chatHistory.push({
+        role: 'user',
+        content: userMessage,
+      });
+
+      console.log(messagesToSend);
+
       const response = await this.client.chat({
-        model: 'GigaChat',
-        messages: [
-          {
-            role: 'system',
-            content: `«Твоя задача — преобразовать данные о [ОПИСАНИЕ ДАННЫХ] в формат XML.
-
-Следуй строго этой схеме:
-    
-<data>
-  <item>
-    <id>Уникальный ID</id>
-    <title>Заголовок</title>
-    <description>Описание</description>
-    <attributes>
-       <attr name="ключ">значение</attr>
-    </attributes>
-  </item>
-</data>
-
-  
-
-Важные правила:
-
-    Вывод должен быть валидным XML.
-
-    В ответе должен быть только XML-код, без дополнительных символов или оберток.
-
-    Не используй Markdown-разметку (т.е. не оборачивай ответ в xml ... ).
-
-    Если в тексте встречаются спецсимволы (<, >, &), обязательно экранируй их или используй CDATA.»`,
-          },
-          {
-            role: 'user',
-            content: userMessage,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 500,
+        model: 'GigaChat-Pro',
+        messages: messagesToSend,
+        temperature: 0.5,
+        top_p: 0.9,
+        n: 1,
+        max_tokens: 200,
+        repetition_penalty: 1.2,
+        profanity_check: true,
       });
 
       if (!response.choices || response.choices.length === 0) {
@@ -74,11 +64,22 @@ export class GptService implements OnModuleInit {
       }
 
       const content = response.choices[0]?.message.content;
+
+      this.chatHistory.push({
+        role: 'assistant',
+        content: content || '',
+      });
+
       this.logger.log('GigaChat response received');
       return content;
     } catch (error) {
       this.logger.error('Error communicating with GigaChat', error);
       throw new Error('Failed to get response from GigaChat');
     }
+  }
+
+  clearHistory(): void {
+    this.chatHistory = [];
+    this.logger.log('Chat history cleared');
   }
 }

@@ -1,4 +1,11 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Delete,
+  Body,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { GptService } from './gpt.service';
 
 @Controller('gpt')
@@ -12,6 +19,16 @@ export class GptController {
     return {
       success: true,
       response,
+    };
+  }
+
+  @Delete('history')
+  @HttpCode(HttpStatus.OK)
+  clearHistory() {
+    this.gptService.clearHistory();
+    return {
+      success: true,
+      message: 'Chat history cleared',
     };
   }
 }

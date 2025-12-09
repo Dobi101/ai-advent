@@ -31,4 +31,24 @@ export class GptController {
       message: 'Chat history cleared',
     };
   }
+
+  @Post('system-prompt')
+  @HttpCode(HttpStatus.OK)
+  setSystemPrompt(@Body() body: { prompt: string }) {
+    this.gptService.setSystemPrompt(body.prompt);
+    return {
+      success: true,
+      message: 'System prompt updated',
+    };
+  }
+
+  @Post('temperature')
+  @HttpCode(HttpStatus.OK)
+  setTemperature(@Body() body: { temperature: number }) {
+    this.gptService.setTemperature(body.temperature);
+    return {
+      success: true,
+      message: 'Temperature updated',
+    };
+  }
 }

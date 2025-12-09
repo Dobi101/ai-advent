@@ -9,6 +9,8 @@ export class GptService implements OnModuleInit {
   private readonly logger = new Logger(GptService.name);
   private client: GigaChat;
   private chatHistory: ChatMessage[] = [];
+  private systemPrompt: string;
+  private temperature: number = 0;
 
   onModuleInit() {
     try {
@@ -21,6 +23,8 @@ export class GptService implements OnModuleInit {
         credentials: process.env.GIGACHAT_CREDENTIALS,
         httpsAgent: httpsAgent,
       });
+
+      this.systemPrompt = prompt;
 
       this.logger.log('GigaChat client initialized successfully');
     } catch (error) {
@@ -36,7 +40,7 @@ export class GptService implements OnModuleInit {
       if (this.chatHistory.length === 0)
         this.chatHistory.push({
           role: 'system',
-          content: prompt,
+          content: this.systemPrompt,
         });
 
       messagesToSend.push(...this.chatHistory);
@@ -46,17 +50,13 @@ export class GptService implements OnModuleInit {
         content: userMessage,
       });
 
-      console.log(messagesToSend);
+      this.logger.log(messagesToSend);
 
       const response = await this.client.chat({
-        model: 'GigaChat-Pro',
+        model: 'GigaChat',
         messages: messagesToSend,
-        temperature: 0.5,
-        top_p: 0.9,
-        n: 1,
-        max_tokens: 200,
-        repetition_penalty: 1.2,
-        profanity_check: true,
+        temperature: this.temperature,
+        max_tokens: 1000,
       });
 
       if (!response.choices || response.choices.length === 0) {
@@ -81,5 +81,31 @@ export class GptService implements OnModuleInit {
   clearHistory(): void {
     this.chatHistory = [];
     this.logger.log('Chat history cleared');
+  }
+
+  setSystemPrompt(newPrompt: string): void {
+    this.systemPrompt = newPrompt;
+
+    if (this.chatHistory.length > 0 && this.chatHistory[0].role === 'system') {
+      this.chatHistory[0].content = newPrompt;
+    }
+
+    this.logger.log('System prompt updated');
+  }
+
+  getSystemPrompt(): string {
+    return this.systemPrompt;
+  }
+
+  setTemperature(temperature: number): void {
+    if (temperature < 0 || temperature > 2) {
+      throw new Error('Temperature must be between 0 and 2');
+    }
+    this.temperature = temperature;
+    this.logger.log(`Temperature updated to ${temperature}`);
+  }
+
+  getTemperature(): number {
+    return this.temperature;
   }
 }

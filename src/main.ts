@@ -10,7 +10,6 @@ async function bootstrap() {
   await app.listen(port);
 
   logger.log(`🚀 Application is running on: http://localhost:${port}`);
-  logger.log(`🤖 Telegram bot is active`);
 }
 
 bootstrap();

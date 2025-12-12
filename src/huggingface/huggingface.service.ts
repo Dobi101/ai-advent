@@ -30,6 +30,7 @@ export class HuggingFaceService implements OnModuleInit {
             content: message,
           },
         ],
+        max_tokens: 1024,
       });
 
       const endTime = Date.now();

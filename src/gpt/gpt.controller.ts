@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Delete,
+  Get,
   Body,
   HttpCode,
   HttpStatus,
@@ -15,10 +16,14 @@ export class GptController {
   @Post('message')
   @HttpCode(HttpStatus.OK)
   async sendMessage(@Body() body: { message: string }) {
-    const response = await this.gptService.sendMessage(body.message);
+    const result = await this.gptService.sendMessage(body.message);
     return {
       success: true,
-      response,
+      response: result.response,
+      responseTime: result.responseTime,
+      tokens: result.tokens,
+      historyCompressed: result.historyCompressed,
+      historyLength: result.historyLength,
     };
   }
 
@@ -49,6 +54,26 @@ export class GptController {
     return {
       success: true,
       message: 'Temperature updated',
+    };
+  }
+
+  @Get('compression-stats')
+  @HttpCode(HttpStatus.OK)
+  getCompressionStats() {
+    const stats = this.gptService.getCompressionStats();
+    return {
+      success: true,
+      ...stats,
+    };
+  }
+
+  @Post('compression-threshold')
+  @HttpCode(HttpStatus.OK)
+  setCompressionThreshold(@Body() body: { threshold: number }) {
+    this.gptService.setCompressionThreshold(body.threshold);
+    return {
+      success: true,
+      message: 'Compression threshold updated',
     };
   }
 }

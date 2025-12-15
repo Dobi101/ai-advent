@@ -76,4 +76,14 @@ export class GptController {
       message: 'Compression threshold updated',
     };
   }
+
+  @Get('tools')
+  @HttpCode(HttpStatus.OK)
+  getAvailableTools() {
+    const tools = this.gptService.getAvailableTools();
+    return {
+      success: true,
+      tools,
+    };
+  }
 }

@@ -1,12 +1,15 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import GigaChat from 'gigachat';
 import { Agent } from 'node:https';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { prompt, summaryPrompt } from './assets/prompt';
-import { ChatMessage, GptResponse } from './interfaces/interfaces';
+import { ChatMessage, GptResponse, MemoryData } from './interfaces/interfaces';
 
 @Injectable()
 export class GptService implements OnModuleInit {
   private readonly logger = new Logger(GptService.name);
+  private readonly memoryFilePath: string;
   private client: GigaChat;
   private chatHistory: ChatMessage[] = [];
   private systemPrompt: string;
@@ -14,6 +17,10 @@ export class GptService implements OnModuleInit {
   private compressionThreshold: number = 10;
   private compressionCount: number = 0;
   private totalMessagesBeforeCompression: number = 0;
+
+  constructor() {
+    this.memoryFilePath = join(process.cwd(), 'memory.json');
+  }
 
   onModuleInit() {
     try {
@@ -27,7 +34,8 @@ export class GptService implements OnModuleInit {
         httpsAgent: httpsAgent,
       });
 
-      this.systemPrompt = prompt;
+      this.loadMemory();
+      this.systemPrompt = this.systemPrompt || prompt;
 
       this.logger.log('GigaChat client initialized successfully');
     } catch (error) {
@@ -36,9 +44,63 @@ export class GptService implements OnModuleInit {
     }
   }
 
+  private loadMemory(): void {
+    try {
+      if (existsSync(this.memoryFilePath)) {
+        const fileContent = readFileSync(this.memoryFilePath, 'utf-8');
+        const memoryData: MemoryData = JSON.parse(fileContent);
+
+        this.chatHistory = memoryData.chatHistory || [];
+        this.compressionCount = memoryData.compressionCount || 0;
+        this.totalMessagesBeforeCompression =
+          memoryData.totalMessagesBeforeCompression || 0;
+        this.temperature = memoryData.temperature ?? 1;
+        this.compressionThreshold = memoryData.compressionThreshold || 10;
+        this.systemPrompt = memoryData.systemPrompt || prompt;
+
+        this.logger.log(
+          `Memory loaded from file. History length: ${this.chatHistory.length}`,
+        );
+      } else {
+        this.logger.log('Memory file not found, starting with empty history');
+        this.systemPrompt = prompt;
+        this.saveMemory();
+      }
+    } catch (error) {
+      this.logger.error('Error loading memory from file', error);
+      this.logger.log('Starting with empty history');
+      this.systemPrompt = prompt;
+    }
+  }
+
+  private saveMemory(): void {
+    try {
+      const memoryData: MemoryData = {
+        chatHistory: this.chatHistory,
+        compressionCount: this.compressionCount,
+        totalMessagesBeforeCompression: this.totalMessagesBeforeCompression,
+        temperature: this.temperature,
+        compressionThreshold: this.compressionThreshold,
+        systemPrompt: this.systemPrompt,
+      };
+
+      writeFileSync(
+        this.memoryFilePath,
+        JSON.stringify(memoryData, null, 2),
+        'utf-8',
+      );
+      this.logger.debug('Memory saved to file');
+    } catch (error) {
+      this.logger.error('Error saving memory to file', error);
+    }
+  }
+
   clearHistory(): void {
     this.chatHistory = [];
-    this.logger.log('Chat history cleared');
+    this.compressionCount = 0;
+    this.totalMessagesBeforeCompression = 0;
+    this.saveMemory();
+    this.logger.log('Chat history cleared and memory file updated');
   }
 
   setSystemPrompt(newPrompt: string): void {
@@ -48,6 +110,7 @@ export class GptService implements OnModuleInit {
       this.chatHistory[0].content = newPrompt;
     }
 
+    this.saveMemory();
     this.logger.log('System prompt updated');
   }
 
@@ -60,6 +123,7 @@ export class GptService implements OnModuleInit {
       throw new Error('Temperature must be between 0 and 2');
     }
     this.temperature = temperature;
+    this.saveMemory();
     this.logger.log(`Temperature updated to ${temperature}`);
   }
 
@@ -155,6 +219,7 @@ export class GptService implements OnModuleInit {
         this.logger.log(
           `History compressed. Compression count: ${this.compressionCount}`,
         );
+        this.saveMemory();
       }
 
       this.chatHistory.push({
@@ -186,6 +251,8 @@ export class GptService implements OnModuleInit {
         role: 'assistant',
         content: content || '',
       });
+
+      this.saveMemory();
 
       const usage = response.usage;
       const currentHistoryLength = this.countUserAssistantPairs();
@@ -221,6 +288,7 @@ export class GptService implements OnModuleInit {
       throw new Error('Compression threshold must be at least 2');
     }
     this.compressionThreshold = threshold;
+    this.saveMemory();
     this.logger.log(`Compression threshold updated to ${threshold}`);
   }
 

@@ -14,3 +14,12 @@ export interface GptResponse {
   historyCompressed: boolean;
   historyLength: number;
 }
+
+export interface MemoryData {
+  chatHistory: ChatMessage[];
+  compressionCount: number;
+  totalMessagesBeforeCompression: number;
+  temperature: number;
+  compressionThreshold: number;
+  systemPrompt: string;
+}

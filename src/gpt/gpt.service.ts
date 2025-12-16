@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Function } from 'gigachat/interfaces';
 import { ChatMessage, GptResponse } from './interfaces/interfaces';
 import { OpenMeteoService } from './open-meteo.service';
+import { McpService } from './mcp.service';
 import { MemoryService } from './services/memory.service';
 import { ChatHistoryService } from './services/chat-history.service';
 import { FunctionCallHandlerService } from './services/function-call-handler.service';
@@ -17,6 +18,7 @@ export class GptService {
     private readonly functionCallHandler: FunctionCallHandlerService,
     private readonly gigachatClient: GigaChatClientService,
     private readonly openMeteoService: OpenMeteoService,
+    private readonly mcpService: McpService,
   ) {}
 
   /**
@@ -104,8 +106,10 @@ export class GptService {
   /**
    * Возвращает список всех доступных инструментов (functions)
    */
-  getAvailableTools(): Function[] {
-    return this.openMeteoService.getAvailableTools();
+  async getAvailableTools(): Promise<Function[]> {
+    const openMeteoTools = this.openMeteoService.getAvailableTools();
+    const mcpTools = await this.mcpService.getAvailableTools();
+    return [...openMeteoTools, ...mcpTools];
   }
 
   /**
@@ -156,7 +160,7 @@ export class GptService {
       });
 
       // Получаем доступные функции
-      const functions = this.openMeteoService.getAvailableTools();
+      const functions = await this.getAvailableTools();
       const client = this.gigachatClient.getClient();
 
       // Цикл для обработки function calls (может быть несколько итераций)

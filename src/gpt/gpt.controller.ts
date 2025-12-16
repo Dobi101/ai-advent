@@ -79,8 +79,8 @@ export class GptController {
 
   @Get('tools')
   @HttpCode(HttpStatus.OK)
-  getAvailableTools() {
-    const tools = this.gptService.getAvailableTools();
+  async getAvailableTools() {
+    const tools = await this.gptService.getAvailableTools();
     return {
       success: true,
       tools,

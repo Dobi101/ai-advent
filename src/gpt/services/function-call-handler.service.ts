@@ -1,15 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OpenMeteoService } from '../open-meteo.service';
-import { McpService } from '../mcp.service';
+// import { McpService } from '../mcp.service'; // Временно отключен
 
 @Injectable()
 export class FunctionCallHandlerService {
   private readonly logger = new Logger(FunctionCallHandlerService.name);
+  private reminderService: any = null;
 
   constructor(
     private readonly openMeteoService: OpenMeteoService,
-    private readonly mcpService: McpService,
+    // private readonly mcpService: McpService, // Временно отключен
   ) {}
+
+  /**
+   * Устанавливает ReminderService (используется для избежания циклических зависимостей)
+   */
+  setReminderService(reminderService: any) {
+    this.reminderService = reminderService;
+  }
 
   /**
    * Обрабатывает вызов функции и выполняет соответствующий запрос
@@ -23,10 +31,20 @@ export class FunctionCallHandlerService {
         `Handling function call: ${functionName} with args: ${JSON.stringify(functionArgs)}`,
       );
 
-      // Проверяем, является ли это MCP tool
-      const isMcpTool = await this.mcpService.isMcpTool(functionName);
-      if (isMcpTool) {
-        return await this.mcpService.callTool(functionName, functionArgs);
+      // Проверяем, является ли это MCP tool (временно отключено)
+      // const isMcpTool = await this.mcpService.isMcpTool(functionName);
+      // if (isMcpTool) {
+      //   return await this.mcpService.callTool(functionName, functionArgs);
+      // }
+
+      // Обрабатываем reminder tools
+      if (this.reminderService) {
+        switch (functionName) {
+          case 'get_reminder_tasks': {
+            const tasks = await this.reminderService.handleGetTasks();
+            return JSON.stringify(tasks, null, 2);
+          }
+        }
       }
 
       // Обрабатываем open-meteo tools
@@ -42,9 +60,10 @@ export class FunctionCallHandlerService {
           });
           return JSON.stringify(forecast, null, 2);
         }
-        default:
-          throw new Error(`Unknown function: ${functionName}`);
       }
+
+      // Если функция не найдена ни в одном из обработчиков
+      throw new Error(`Unknown function: ${functionName}`);
     } catch (error) {
       this.logger.error(`Error handling function call ${functionName}`, error);
       return JSON.stringify({

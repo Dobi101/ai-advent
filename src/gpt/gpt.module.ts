@@ -13,11 +13,12 @@ import { GigaChatClientService } from './services/gigachat-client.service';
   providers: [
     GptService,
     OpenMeteoService,
-    McpService,
+    // McpService, // Временно отключен
     MemoryService,
     ChatHistoryService,
     FunctionCallHandlerService,
     GigaChatClientService,
   ],
+  exports: [GptService, FunctionCallHandlerService],
 })
 export class GptModule {}

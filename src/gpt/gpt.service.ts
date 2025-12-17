@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Function } from 'gigachat/interfaces';
 import { ChatMessage, GptResponse } from './interfaces/interfaces';
 import { OpenMeteoService } from './open-meteo.service';
-import { McpService } from './mcp.service';
+// import { McpService } from './mcp.service'; // Временно отключен
 import { MemoryService } from './services/memory.service';
 import { ChatHistoryService } from './services/chat-history.service';
 import { FunctionCallHandlerService } from './services/function-call-handler.service';
@@ -11,6 +11,7 @@ import { GigaChatClientService } from './services/gigachat-client.service';
 @Injectable()
 export class GptService {
   private readonly logger = new Logger(GptService.name);
+  private reminderService: any = null;
 
   constructor(
     private readonly memoryService: MemoryService,
@@ -18,8 +19,15 @@ export class GptService {
     private readonly functionCallHandler: FunctionCallHandlerService,
     private readonly gigachatClient: GigaChatClientService,
     private readonly openMeteoService: OpenMeteoService,
-    private readonly mcpService: McpService,
+    // private readonly mcpService: McpService, // Временно отключен
   ) {}
+
+  /**
+   * Устанавливает ReminderService (используется для избежания циклических зависимостей)
+   */
+  setReminderService(reminderService: any) {
+    this.reminderService = reminderService;
+  }
 
   /**
    * Очищает историю чата
@@ -108,8 +116,11 @@ export class GptService {
    */
   async getAvailableTools(): Promise<Function[]> {
     const openMeteoTools = this.openMeteoService.getAvailableTools();
-    const mcpTools = await this.mcpService.getAvailableTools();
-    return [...openMeteoTools, ...mcpTools];
+    // const mcpTools = await this.mcpService.getAvailableTools(); // Временно отключен
+    const reminderTools = this.reminderService
+      ? this.reminderService.getAvailableTools()
+      : [];
+    return [...openMeteoTools, ...reminderTools]; // ...mcpTools убран
   }
 
   /**

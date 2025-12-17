@@ -1,0 +1,72 @@
+[
+  {
+    "id": "1",
+    "title": "Реализовать API для управления задачами",
+    "description": "Создать REST API endpoints для CRUD операций с задачами: создание, чтение, обновление и удаление",
+    "status": "in_progress",
+    "createdAt": "2024-12-15T10:00:00Z"
+  },
+  {
+    "id": "2",
+    "title": "Настроить CI/CD pipeline",
+    "description": "Настроить автоматическую сборку и деплой приложения через GitHub Actions",
+    "status": "pending",
+    "createdAt": "2024-12-14T09:30:00Z"
+  },
+  {
+    "id": "3",
+    "title": "Добавить валидацию входных данных",
+    "description": "Реализовать валидацию для всех API endpoints с использованием class-validator",
+    "status": "pending",
+    "createdAt": "2024-12-13T14:20:00Z"
+  },
+  {
+    "id": "4",
+    "title": "Написать unit-тесты для ReminderService",
+    "description": "Покрыть тестами все методы ReminderService: loadTasks, saveTasks, getTasks, generateSummary",
+    "status": "pending",
+    "createdAt": "2024-12-12T11:15:00Z"
+  },
+  {
+    "id": "5",
+    "title": "Интегрировать базу данных",
+    "description": "Заменить хранение в JSON файле на PostgreSQL с использованием TypeORM",
+    "status": "in_progress",
+    "createdAt": "2024-12-11T16:45:00Z"
+  },
+  {
+    "id": "6",
+    "title": "Создать документацию API",
+    "description": "Написать Swagger/OpenAPI документацию для всех endpoints",
+    "status": "pending",
+    "createdAt": "2024-12-10T13:00:00Z"
+  },
+  {
+    "id": "7",
+    "title": "Добавить аутентификацию пользователей",
+    "description": "Реализовать JWT-based аутентификацию и авторизацию",
+    "status": "pending",
+    "createdAt": "2024-12-09T10:30:00Z"
+  },
+  {
+    "id": "8",
+    "title": "Оптимизировать запросы к GPT API",
+    "description": "Добавить кэширование ответов GPT и оптимизировать промпты для снижения стоимости",
+    "status": "completed",
+    "createdAt": "2024-12-08T15:20:00Z"
+  },
+  {
+    "id": "9",
+    "title": "Реализовать уведомления о задачах",
+    "description": "Добавить систему уведомлений через email или Telegram для важных задач",
+    "status": "pending",
+    "createdAt": "2024-12-07T12:10:00Z"
+  },
+  {
+    "id": "10",
+    "title": "Добавить фильтрацию и сортировку задач",
+    "description": "Реализовать возможность фильтрации задач по статусу и сортировки по дате создания",
+    "status": "in_progress",
+    "createdAt": "2024-12-06T09:00:00Z"
+  }
+]

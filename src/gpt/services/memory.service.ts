@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { MemoryData } from '../interfaces/interfaces';
-import { prompt } from '../assets/prompt';
+import { summaryPipelinePrompt } from '../assets/prompt';
 
 @Injectable()
 export class MemoryService {
@@ -35,7 +35,7 @@ export class MemoryService {
             memoryData.totalMessagesBeforeCompression || 0,
           temperature: memoryData.temperature ?? 1,
           compressionThreshold: memoryData.compressionThreshold || 10,
-          systemPrompt: memoryData.systemPrompt || prompt,
+          systemPrompt: memoryData.systemPrompt || summaryPipelinePrompt,
         };
       } else {
         this.logger.log('Memory file not found, starting with empty history');
@@ -45,7 +45,7 @@ export class MemoryService {
           totalMessagesBeforeCompression: 0,
           temperature: 1,
           compressionThreshold: 10,
-          systemPrompt: prompt,
+          systemPrompt: summaryPipelinePrompt,
         };
         this.saveMemory(defaultMemory);
         return defaultMemory;
@@ -59,7 +59,7 @@ export class MemoryService {
         totalMessagesBeforeCompression: 0,
         temperature: 1,
         compressionThreshold: 10,
-        systemPrompt: prompt,
+        systemPrompt: summaryPipelinePrompt,
       };
     }
   }

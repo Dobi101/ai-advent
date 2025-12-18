@@ -1,33 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Function } from 'gigachat/interfaces';
 import { ChatMessage, GptResponse } from './interfaces/interfaces';
-import { OpenMeteoService } from './open-meteo.service';
-// import { McpService } from './mcp.service'; // Временно отключен
 import { MemoryService } from './services/memory.service';
 import { ChatHistoryService } from './services/chat-history.service';
 import { FunctionCallHandlerService } from './services/function-call-handler.service';
 import { GigaChatClientService } from './services/gigachat-client.service';
+import { McpClientService } from '../mcp/mcp-client.service';
 
 @Injectable()
 export class GptService {
   private readonly logger = new Logger(GptService.name);
-  private reminderService: any = null;
 
   constructor(
     private readonly memoryService: MemoryService,
     private readonly chatHistoryService: ChatHistoryService,
     private readonly functionCallHandler: FunctionCallHandlerService,
     private readonly gigachatClient: GigaChatClientService,
-    private readonly openMeteoService: OpenMeteoService,
-    // private readonly mcpService: McpService, // Временно отключен
+    private readonly mcpClient: McpClientService,
   ) {}
-
-  /**
-   * Устанавливает ReminderService (используется для избежания циклических зависимостей)
-   */
-  setReminderService(reminderService: any) {
-    this.reminderService = reminderService;
-  }
 
   /**
    * Очищает историю чата
@@ -112,15 +102,59 @@ export class GptService {
   }
 
   /**
-   * Возвращает список всех доступных инструментов (functions)
+   * Возвращает список всех доступных инструментов (functions) из MCP сервера
    */
   async getAvailableTools(): Promise<Function[]> {
-    const openMeteoTools = this.openMeteoService.getAvailableTools();
-    // const mcpTools = await this.mcpService.getAvailableTools(); // Временно отключен
-    const reminderTools = this.reminderService
-      ? this.reminderService.getAvailableTools()
-      : [];
-    return [...openMeteoTools, ...reminderTools]; // ...mcpTools убран
+    try {
+      // Получаем инструменты из MCP сервера
+      const mcpTools = await this.mcpClient.listTools();
+
+      // Преобразуем MCP инструменты в формат GigaChat Function
+      return mcpTools.tools.map((tool: any) => {
+        const schema = tool.inputSchema;
+        const properties: Record<string, any> = {};
+        const required: string[] = [];
+
+        if (schema.properties) {
+          for (const [key, value] of Object.entries(schema.properties)) {
+            const prop = value as any;
+            const propertyDef: any = {
+              type: prop.type,
+              description: prop.description,
+            };
+
+            // Если это объект с additionalProperties, добавляем пустой properties
+            // чтобы GigaChat API принял схему
+            if (prop.type === 'object' && prop.additionalProperties) {
+              propertyDef.properties = {};
+              propertyDef.additionalProperties = {
+                type: prop.additionalProperties.type || 'string',
+              };
+            }
+
+            properties[key] = propertyDef;
+          }
+        }
+
+        if (schema.required) {
+          required.push(...schema.required);
+        }
+
+        return {
+          name: tool.name,
+          description: tool.description,
+          parameters: {
+            type: schema.type || 'object',
+            properties,
+            required,
+          },
+        };
+      });
+    } catch (error) {
+      this.logger.error('Error getting tools from MCP server', error);
+      // Возвращаем пустой массив в случае ошибки
+      return [];
+    }
   }
 
   /**
@@ -204,13 +238,30 @@ export class GptService {
         if (functionCall) {
           this.logger.log(`Function call detected: ${functionCall.name}`);
 
+          // Специальная обработка для write_file: если content неполный, используем контент из сообщения
+          let functionArgs = { ...(functionCall.arguments || {}) };
+          if (
+            functionCall.name === 'write_file' &&
+            functionArgs.content &&
+            (functionArgs.content.length < 100 ||
+              functionArgs.content.includes('# ...') ||
+              functionArgs.content.trim() === '}') &&
+            content &&
+            content.length > functionArgs.content.length
+          ) {
+            this.logger.log(
+              'Detected incomplete content in write_file, using assistant message content',
+            );
+            functionArgs.content = content;
+          }
+
           // Добавляем сообщение ассистента с function_call в историю
           chatHistory.push({
             role: 'assistant',
             content: content || '',
             function_call: {
               name: functionCall.name,
-              arguments: functionCall.arguments || {},
+              arguments: functionArgs,
             },
           });
 
@@ -218,7 +269,7 @@ export class GptService {
           const functionResult =
             await this.functionCallHandler.handleFunctionCall(
               functionCall.name,
-              functionCall.arguments || {},
+              functionArgs,
             );
 
           // Добавляем результат функции в историю

@@ -239,7 +239,7 @@ export class GptService {
           this.logger.log(`Function call detected: ${functionCall.name}`);
 
           // Специальная обработка для write_file: если content неполный, используем контент из сообщения
-          let functionArgs = { ...(functionCall.arguments || {}) };
+          const functionArgs = { ...(functionCall.arguments || {}) };
           if (
             functionCall.name === 'write_file' &&
             functionArgs.content &&

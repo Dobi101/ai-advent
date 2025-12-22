@@ -52,6 +52,12 @@ pids
 *.seed
 *.pid.lock
 
+# Database files
+/data
+*.db
+*.db-shm
+*.db-wal
+
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 

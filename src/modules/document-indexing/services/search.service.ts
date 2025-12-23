@@ -198,5 +198,43 @@ export class SearchService {
       throw error;
     }
   }
+
+  /**
+   * Семантический поиск с формированием контекста для RAG
+   */
+  async searchWithRAG(
+    query: string,
+    topK: number = 3,
+  ): Promise<{ context: string; results: SearchResult[] }> {
+    try {
+      const results = await this.semanticSearch(query, { topK });
+
+      if (results.length === 0) {
+        return {
+          context: '',
+          results: [],
+        };
+      }
+
+      // Формирование контекста из найденных чанков
+      const context = results
+        .map(
+          (r) => `[${r.document.filepath}]\n${r.chunk.content}`,
+        )
+        .join('\n\n---\n\n');
+
+      this.logger.debug(
+        `Контекст для RAG сформирован (чанков: ${results.length}, длина: ${context.length} символов)`,
+      );
+
+      return {
+        context,
+        results,
+      };
+    } catch (error) {
+      this.logger.error('Ошибка поиска с RAG', error);
+      throw error;
+    }
+  }
 }
 

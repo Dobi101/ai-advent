@@ -25,5 +25,9 @@ export default registerAs('indexing', () => ({
     defaultTopK: 5,
     minScore: 0.3,
   },
+  rag: {
+    model: process.env.RAG_OLLAMA_MODEL || 'qwen2.5:3b',
+    timeout: parseInt(process.env.RAG_OLLAMA_TIMEOUT || '60000', 10), // 60 секунд для RAG (больше контекста)
+  },
 }));
 

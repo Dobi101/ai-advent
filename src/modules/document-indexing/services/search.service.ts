@@ -9,6 +9,16 @@ import { Chunk } from '../entities/chunk.entity';
 import { Document } from '../entities/document.entity';
 
 /**
+ * Результат фильтрации поиска с метаданными
+ */
+export interface FilteredSearchResult {
+  results: SearchResult[];
+  total: number;
+  filtered: number;
+  threshold: number;
+}
+
+/**
  * Сервис для семантического поиска
  */
 @Injectable()
@@ -233,6 +243,61 @@ export class SearchService {
       };
     } catch (error) {
       this.logger.error('Ошибка поиска с RAG', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Семантический поиск с фильтрацией по порогу схожести
+   * Возвращает результаты с метаданными о фильтрации
+   * @param query - Поисковый запрос
+   * @param topK - Максимальное количество результатов
+   * @param threshold - Минимальный порог схожести (0-1)
+   */
+  async searchWithThreshold(
+    query: string,
+    topK: number = 10,
+    threshold: number = 0.6,
+  ): Promise<FilteredSearchResult> {
+    try {
+      // Валидация параметров
+      if (threshold < 0 || threshold > 1) {
+        throw new Error('Порог должен быть в диапазоне [0, 1]');
+      }
+      if (topK <= 0 || topK > 20) {
+        throw new Error('topK должен быть в диапазоне (0, 20]');
+      }
+
+      this.logger.log(
+        `Поиск с порогом: "${query}" (topK: ${topK}, threshold: ${threshold})`,
+      );
+
+      // Получение общего количества результатов (без фильтрации по порогу)
+      const allResults = await this.semanticSearch(query, {
+        topK: 100, // Достаточно большое число для подсчета total
+        minScore: 0, // Без фильтрации
+      });
+      const total = allResults.length;
+
+      // Получение отфильтрованных результатов
+      const filteredResults = await this.semanticSearch(query, {
+        topK,
+        minScore: threshold,
+      });
+      const filtered = filteredResults.length;
+
+      this.logger.log(
+        `Результаты фильтрации: ${filtered}/${total} (порог: ${threshold})`,
+      );
+
+      return {
+        results: filteredResults,
+        total,
+        filtered,
+        threshold,
+      };
+    } catch (error) {
+      this.logger.error('Ошибка поиска с порогом', error);
       throw error;
     }
   }

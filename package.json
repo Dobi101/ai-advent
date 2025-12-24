@@ -18,7 +18,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "test:rag": "ts-node scripts/test-rag.ts"
+    "test:rag": "ts-node scripts/test-rag.ts",
+    "test:reranking": "ts-node scripts/test-reranking.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
@@ -27,7 +28,7 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/mapped-types": "*",
     "@nestjs/platform-express": "^11.0.1",
-    "better-sqlite3": "^9.0.0",
+    "better-sqlite3": "^12.5.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "dockerode": "^4.0.9",
